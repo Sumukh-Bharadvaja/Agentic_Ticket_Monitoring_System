@@ -49,7 +49,7 @@ The following diagram illustrates the flow of data and interactions between the 
    - Sends ticket data to **SecureGPT** to classify priority, severity, urgency, component, and team.
    - Updates Jira and uploads `categorized_tickets.csv` to S3.
 
-![Ticket Categoriser](img/data.svgticket.svg)
+![Ticket Categoriser](img/ticket.svg)
 
 3. **SLA Monitoring (`Sla_Monitor.py`)**  
    - Triggered by the upload of `categorized_tickets.csv`.
