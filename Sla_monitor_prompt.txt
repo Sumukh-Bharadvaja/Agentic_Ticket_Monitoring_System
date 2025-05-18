@@ -1,0 +1,26 @@
+You are an expert Python developer. Your task is to reproduce a comprehensive design specification for an SLA monitoring system that integrates with an issue‑tracking API, a natural‑language classification service, and cloud storage. Do not output any code; instead, provide a detailed English description of every component and function so that the entire source can be reconstructed. Your specification must include:
+
+1. Global Setup and Configuration  
+   - Explain why and how the system initializes connections to the issue‑tracker, the classification service, and cloud storage, including how it securely loads credentials and applies sensible defaults.  
+   - Describe how logging is configured to capture events both to the console and into an in‑memory buffer that can later be uploaded.
+
+2. Function: Log Uploader  
+   - Detail how this helper assembles a filename using a fixed prefix plus the current date and time in UTC, and how it transfers the accumulated log text into one or more cloud storage locations, including error handling and status reporting.
+
+3. Component: Issue Retriever  
+   - Describe how this piece fetches recent tickets from the issue‑tracking system, excludes tickets without an assignee, and extracts for each ticket its unique ID, summary text, original time estimate, creation timestamp, current status, and assignee contact information.
+
+4. Component: SLA Evaluator  
+   - Explain how this unit takes a single ticket’s core fields, constructs a natural‑language request for the classification service asking whether the SLA is met or breached, sends that request, and translates the reply into exactly three structured outputs: the ticket ID, a compliance flag, and a human‑readable explanation.
+
+5. Component: CSV Generator  
+   - Detail how this part collects the evaluator’s outputs for all tickets, arranges them into rows with columns for ticket ID, assignee contact, compliance status, explanation message, original estimate, creation date, and status, and then writes the result as a comma‑separated file.
+
+6. Component: Event Orchestrator  
+   - Describe the top‑level flow that is triggered by an incoming event, calls the retriever, feeds each ticket through the evaluator, runs the CSV generator, uploads both the CSV and the log file to two designated storage locations, and returns a success confirmation.
+
+7. Local‑Run Guard  
+   - Explain how an operator can run the exact same sequence locally for testing by bypassing the event trigger but invoking the full orchestration.
+
+Ensure each description covers inputs, outputs, external interactions, and error‑handling strategies so that someone can implement the module exactly.  
+Apply reflexion and revisit all the methods so that it has fall back mechanism and update the code and prompts accordingly.

@@ -1,0 +1,72 @@
+You are an expert Python developer. Your task is to reproduce a comprehensive design specification for a ticket categorization system that integrates with Jira, SecureGPT, and AWS S3. Do not output the original code; instead, provide a detailed explanation for each function and component so that the entire code can be reconstructed from your description. Your explanation must include the following:
+ 
+1. Global Setup and Configuration:
+   - Explain the purpose of importing modules such as os, json, csv, io, re, random, requests, logging, boto3, and datetime.
+   - Describe the logging configuration: how a logger is set up at the INFO level with a memory handler to capture logs that can later be uploaded to an S3 bucket.
+   - List the configuration variables including environment variables for Jira (domain, email, API token, project key), SecureGPT (URL, API token, org), S3 buckets, ticket limit, and the allowed options for priority, components, urgency, severity, and teams. Also mention the fallback values in case any classification is invalid.
+ 
+2. Function: upload_log_file
+   - Detail how this helper function constructs a log filename using a prefix and UTC timestamp.
+   - Describe how it uploads the log string to a designated S3 bucket via boto3, including error handling and logging of upload status.
+ 
+3. Class: JiraIssueFetcher
+   - For the constructor: Explain how it sets the base URL using the Jira domain, initializes a session with basic authentication, sets appropriate headers for JSON requests, and saves the project key.
+   - For get_project_key: Detail how it fetches the list of projects from Jira and searches for a matching project key; explain fallback behavior.
+   - For extract_plain_text: Describe how it processes a Jira description, handling both structured (rich text format) and plain text formats, concatenating text pieces properly.
+   - For fetch_issues: Explain how it builds a JQL query to retrieve up to 100 issues, selects desired fields (such as summary, description, key, priority, issue type, created, timetracking), limits the number of tickets processed, and returns a simplified list of ticket dictionaries.
+ 
+4. Function: call_securegpt_generate
+   - Describe how this function constructs the SecureGPT endpoint URL.
+   - Explain its method of building HTTP headers (with the SecureGPT token) and sending a POST request containing a prompt and parameters (for example, maximum token limits).
+   - Discuss how it returns JSON output on success, or raises an exception if the response status is not 200.
+ 
+5. Function: extract_json_from_generated_text
+   - Outline how this function uses a regular expression to search a text block for a JSON snippet (enclosed in triple backticks with an optional “json” specifier).
+   - Explain how it attempts to parse the extracted snippet into a JSON object, logs parsing errors, and returns either the parsed JSON or None.
+ 
+6. Function: build_dynamic_prompt
+   - Detail how this function constructs a dynamic prompt for SecureGPT by:
+     a. Explaining the assistant’s role: to classify a Jira ticket.
+     b. Listing the valid options for priority, urgency, severity, component, and team.
+     c. Including a "reflexion" instruction that tells the assistant to analyze the ticket’s description and summary for explicit classification cues (such as “Priority: High”), and if the summary is gibberish or the description is empty/null, to output “jibberish” in all classification fields.
+     d. Embedding ticket details (ticket key, summary, description) into the prompt.
+7. Function: analyze_ticket
+   - Describe how this function uses build_dynamic_prompt to generate a tailored prompt for each ticket.
+   - Explain that it sends the prompt to SecureGPT by calling call_securegpt_generate with proper parameters.
+   - Detail how it logs the prompt and the SecureGPT response, employs extract_json_from_generated_text to obtain the classification JSON, and implements a retry mechanism if parsing fails.
+   - Mention that it returns the classification JSON or None if unsuccessful.
+ 
+8. Function: update_ticket_source
+   - Detail how this function builds the URL for updating a specific Jira ticket using its key.
+   - Explain the extraction and validation of classification values (priority, component, urgency, severity, team) from the SecureGPT response.
+   - Describe the “gibberish” check: if key fields indicate gibberish, how it creates a fallback update payload (including replacing the description with a standardized message in Atlassian Document Format and assigning a reporter).
+   - For non-gibberish cases, explain how the function validates classification values against allowed options, applies fallback defaults if needed, and constructs the payload to update:
+     - The ticket’s priority.
+     - Its component (if given).
+     - Custom fields for team, urgency, and severity using their corresponding field keys and mapping.
+     - An estimate based on severity.
+     - A randomly chosen assignee from the defined user mapping.
+   - Explain the PUT request to update the ticket via the Jira API and how it logs the results.
+ 
+9. Function: process_tickets
+   - Describe this orchestration function that:
+     a. Instantiates JiraIssueFetcher and calls fetch_issues to retrieve a list of tickets.
+     b. Iterates over each ticket (up to a predefined limit).
+     c. For each ticket, logs the processing start, calls analyze_ticket to classify it, and then updates the ticket by calling update_ticket_source.
+     d. Re-fetches the updated ticket details from Jira to verify updates.
+     e. Collects updated ticket information into a list of dictionaries with keys like ticket_id, summary, original_description, original_estimate, issue_type, created, Priority, Urgency, Component, Severity, Team, Assignee, Reporter.
+     f. Generates CSV content from the updated ticket records using csv.DictWriter.
+     g. Logs the success and returns the CSV content.
+ 
+10. Function: lambda_handler
+    - Explain that this function serves as the AWS Lambda entry point.
+    - Detail how it:
+      a. Logs the trigger event (API Gateway or S3 event).
+      b. Calls process_tickets to process tickets.
+      c. If CSV content is generated, uploads it to two S3 buckets:
+         - The first upload is to a primary bucket with a predefined key.
+         - The second upload is to a secondary bucket under a path (with a timestamped filename) and with an ACL set to “bucket-owner-full-control.”
+      d. Uploads the log file (captured by the in-memory log stream) to S3 by calling upload_log_file.
+      e. Returns an HTTP 200 response with a JSON body indicating processing success and optionally includes the CSV content.
+ 
+Please ensure the descriptions for each function and component cover all the essential details and interactions as mentioned above, so that someone reading the specification can fully reconstruct your original Python code.Apply reflexion and revisit all the methods so that it has fall back mechanism and update the code and prompts accordingly.

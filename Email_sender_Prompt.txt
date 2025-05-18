@@ -1,0 +1,23 @@
+You are an expert Python developer. Your task is to reproduce a comprehensive design specification for an alert‑email sender that processes SLA breach reports and dispatches notifications. Do not output any code; instead, provide a detailed English description of every component and function so that the entire source can be reconstructed. Your specification must include:
+
+1. Global Setup and Configuration  
+   - Explain why and how the system initializes connections to cloud storage for report retrieval and to an email delivery service, including how it securely loads credentials and applies sensible defaults.  
+   - Describe how logging is configured to capture events to both the console and an in‑memory buffer for later upload.
+
+2. Component: Report Downloader  
+   - Describe how this part retrieves the breach report file from storage, reads its comma‑separated contents, normalizes the header names, and yields one record per ticket.
+
+3. Component: Email Dispatcher  
+   - Explain how this unit takes an individual record (including ticket ID and assignee contact), constructs a plain‑text alert with a standardized subject indicating an SLA breach, connects securely to the mail server, and sends the message to the assignee plus any carbon‑copy recipients, handling errors gracefully.
+
+4. Function: Log Uploader  
+   - Detail how this helper builds a timestamped filename and uploads the accumulated log text into cloud storage, including error handling and success logging.
+
+5. Component: Event Orchestrator  
+   - Describe the top‑level flow triggered by the arrival of a new breach report: invoke the downloader, iterate over each record to send emails for breached items only, upload the combined log file, and return a confirmation response.
+
+6. Local‑Run Guard  
+   - Explain how an operator can run the full workflow locally by specifying the path to a stored report, while still using all the same components and logic.
+
+Make sure each description specifies the expected inputs and outputs, key side effects, and error‑handling strategies so that the code can be recreated exactly.  
+Apply reflexion and revisit all the methods so that it has fall back mechanism and update the code and prompts accordingly.
